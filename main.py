@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 import sys
+from functions.get_files_info import get_files_info, schema_get_files_info
 
 from functions.config import CHAR_LIMIT, system_prompt
 
@@ -28,12 +29,20 @@ def main():
     
     messages = [
         types.Content(role="user", parts=[types.Part(text=user_prompt)]),
-    ]    
-    response = client.models.generate_content(model="gemini-2.0-flash-001", contents=messages, config=types.GenerateContentConfig(system_instruction=system_prompt),)
+    ]
+    available_functions = types.FunctionDeclaration(
+        name=schema_get_files_info.name,
+        description=schema_get_files_info.description,
+        parameters=schema_get_files_info.parameters
+    )
+    response = client.models.generate_content(model="gemini-2.0-flash-001", contents=messages, config=types.GenerateContentConfig(tools=[types.Tool(function_declarations=[available_functions])], system_instruction=system_prompt))
     if verbose:
         print(f"User prompt: {user_prompt}")
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+    if response.function_calls:
+        function_call = response.function_calls[0]  # Get the first function call
+        print(f"Calling function: {function_call.name}({function_call.args})")
     print(response.text)
 
 if __name__ == "__main__":
