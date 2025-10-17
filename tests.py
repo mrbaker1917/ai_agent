@@ -19,5 +19,7 @@ from functions.run_python_file import run_python_file
 # print(run_python_file("calculator", "nonexistent.py"))
 # print(run_python_file("calculator", "lorem.txt"))
 
-print(get_files_info({'directory': '.'}))
-print(get_files_info({'directory': 'pkg'}))
+# print(get_files_info({'directory': '.'}))
+# print(get_files_info({'directory': 'pkg'}))
+
+print(get_file_content({'file_path': 'main.py'}))

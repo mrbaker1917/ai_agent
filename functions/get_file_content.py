@@ -1,4 +1,7 @@
 import os
+import types
+from google import genai
+from google.genai import types
 
 from functions.config import CHAR_LIMIT
 
@@ -21,3 +24,18 @@ def get_file_content(working_directory, file_path):
             return content[:CHAR_LIMIT] + f'[...File "{file_path}" truncated at {CHAR_LIMIT} characters]'
 
     return content
+
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description="Reads the content of a specified file, constrained to the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The path to the file to read, relative to the working directory.",
+            ),
+        },
+        required=["file_path"],
+    )
+)
