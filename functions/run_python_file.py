@@ -4,7 +4,7 @@ import types
 from google import genai
 from google.genai import types
 
-def run_python_file(working_directory, file_path, args=[]):
+def run_python_file(working_directory, file_path, args=None):
     full_path = os.path.join(working_directory, file_path)
     # Make sure the full_path is within the working directory to prevent directory traversal attacks
     real_full_path = os.path.realpath(full_path)
@@ -19,8 +19,14 @@ def run_python_file(working_directory, file_path, args=[]):
 
     # Run the Python file
     try:
-        result = subprocess.run(['python', real_full_path] + args, capture_output=True, text=True, timeout=30)
-        return f"STDOUT: {result.stdout} Process exited with code {result.returncode}" if result.returncode == 0 else f'STDERR: {result.stderr} No output produced.'
+        print(f"Executing Python file: {real_full_path} with args: {args}, working_directory: {working_directory}")
+        cmd = ["python3", "-u", file_path]
+        if args:
+            cmd.extend(args)
+        result = subprocess.run(cmd, cwd=working_directory, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=30)
+        # print(f"cmd: {cmd}, cwd: {working_directory}")
+        output = (result.stdout or "") + (result.stderr or "")
+        return output
     except Exception as e:
         return f"Error: executing Python file: {e}"
 

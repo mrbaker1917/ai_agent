@@ -11,6 +11,7 @@ from functions.run_python_file import run_python_file, schema_run_python_file
 
 from functions.config import CHAR_LIMIT
 from prompts import system_prompt
+from call_function import call_function
 
 
 load_dotenv()
@@ -42,25 +43,35 @@ def main():
     ]
 )
     response = None
-    for attempt in range(3):
-        try:
-            response = client.models.generate_content(model="gemini-2.0-flash-001", contents=messages, config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt))
-            break  # If successful, exit the loop
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}", file=sys.stderr)
-            time.sleep(2)  # Wait before retrying
-    if response is None:
-        print("Error: Failed to get a response from the API after multiple attempts.", file=sys.stderr)
-        sys.exit(1)
-    if verbose:
-        print(f"User prompt: {user_prompt}")
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
-    if response.function_calls:
-        for function_call in response.function_calls:
-            print(f"Calling function: {function_call.name}({function_call.args})")
-    else:
-        print(response.text)
+
+    while True:
+        response = client.models.generate_content(model="gemini-2.0-flash-001", contents=messages, config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt))
+        if response.function_calls:
+            for function_call in response.function_calls:
+                messages.append(types.Content(
+                    role="model",
+                    parts=[
+                        types.Part.from_function_call(
+                            name=function_call.name,
+                            args=function_call.args,
+                        )
+                    ],
+                ))
+                print(f"Calling function: {function_call.name}({function_call.args})")
+                function_response = call_function(function_call, verbose=verbose)
+                
+                messages.append(function_response)
+                resp = function_response.parts[0].function_response.response
+                text = resp.get("result") if isinstance(resp, dict) else resp
+                if verbose:
+                    print(f"-> {text}")
+                else:
+                    print(text)
+
+            continue
+        else:
+            print(response.text)
+            break
 
 if __name__ == "__main__":
     main()
