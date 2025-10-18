@@ -46,6 +46,9 @@ def main():
 
     while True:
         response = client.models.generate_content(model="gemini-2.0-flash-001", contents=messages, config=types.GenerateContentConfig(tools=[available_functions], system_instruction=system_prompt))
+        if response.candidates:
+            for candidate in response.candidates:
+                messages.append(candidate.content)
         if response.function_calls:
             for function_call in response.function_calls:
                 messages.append(types.Content(
@@ -59,7 +62,14 @@ def main():
                 ))
                 print(f"Calling function: {function_call.name}({function_call.args})")
                 function_response = call_function(function_call, verbose=verbose)
-                
+                resp = function_response.parts[0].function_response.response
+                text = str(resp.get("result") if isinstance(resp, dict) else resp)
+                messages.append(types.Content(
+                    role="user",
+                    parts=[
+                        types.Part(text=text)
+                    ]
+                ))
                 messages.append(function_response)
                 resp = function_response.parts[0].function_response.response
                 text = resp.get("result") if isinstance(resp, dict) else resp
